@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: bookhub-with-graphql
+  datasource:
+    url: jdbc:postgresql://localhost:5434/bookhub_db
+    username: myuser
+    password: myadmin
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
