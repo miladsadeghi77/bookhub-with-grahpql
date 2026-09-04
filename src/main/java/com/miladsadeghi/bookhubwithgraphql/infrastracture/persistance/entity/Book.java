@@ -26,6 +26,10 @@ public class Book{
   @JoinColumn(name = "author_id", nullable = false)
   private Author author;
 
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "publisher_id")
+  private Publisher publisher;
+
   public Long getId() {
     return id;
   }
@@ -59,13 +63,23 @@ public class Book{
     this.author = author;
   }
 
+  public Publisher getPublisher() {
+    return publisher;
+  }
+
+  public void setPublisher(
+      Publisher publisher) {
+    this.publisher = publisher;
+  }
+
   public Book() {
   }
 
-  public Book(Long id, String title, Integer publishedYear, Author author) {
+  public Book(Long id, String title, Integer publishedYear, Author author, Publisher publisher) {
     this.id = id;
     this.title = title;
     this.publishedYear = publishedYear;
     this.author = author;
+    this.publisher = publisher;
   }
 }

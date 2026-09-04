@@ -3,13 +3,17 @@ type Book {
     title: String!
     publishedYear: Int
     author: Author!
+    publisher: Publisher
 
 }
 type Author {
     id: ID!
     name: String!
 }
-
+type Publisher{
+    id: ID!
+    name: String!
+}
 type Query {
     book(id: ID!): Book
     books: [Book!]!
