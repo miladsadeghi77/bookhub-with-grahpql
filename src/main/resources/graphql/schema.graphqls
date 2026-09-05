@@ -15,6 +15,35 @@ type Publisher{
     name: String!
 }
 type Query {
-    book(id: ID!): Book
+    book(id: ID!): BookPayload
     books: [Book!]!
 }
+enum ErrorCode {
+    INVALID_INPUT
+    NOT_FOUND
+    DUPLICATE
+    UNAUTHORIZED
+}
+type UserError {
+    message: String!
+    field: String
+    code: ErrorCode
+}
+
+input CreateBookInput {
+    title: String!
+    authorId: ID!
+    publisherId: ID
+    publishedYear: Int
+}
+
+
+type BookPayload {
+    book: Book
+    errors: [UserError!]!
+}
+
+type Mutation {
+    createBook(input: CreateBookInput!): BookPayload!
+}
+
