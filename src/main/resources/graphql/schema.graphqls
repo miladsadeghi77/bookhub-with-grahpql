@@ -15,7 +15,7 @@ type Publisher{
     name: String!
 }
 type Query {
-    book(id: ID!): BookPayload
+    book(bookInput: RetrieveBookInput!): BookPayload
     books: [Book!]!
 }
 enum ErrorCode {
@@ -36,7 +36,9 @@ input CreateBookInput {
     publisherId: ID
     publishedYear: Int
 }
-
+input RetrieveBookInput {
+    id: String!
+}
 
 type BookPayload {
     book: Book

@@ -4,6 +4,7 @@ import com.miladsadeghi.bookhubwithgraphql.api.dto.BookDto;
 import com.miladsadeghi.bookhubwithgraphql.api.error.ErrorCode;
 import com.miladsadeghi.bookhubwithgraphql.api.error.UserError;
 import com.miladsadeghi.bookhubwithgraphql.api.input.CreateBookInput;
+import com.miladsadeghi.bookhubwithgraphql.api.input.RetrieveBookInput;
 import com.miladsadeghi.bookhubwithgraphql.api.payload.BookPayload;
 import com.miladsadeghi.bookhubwithgraphql.infrastracture.persistance.entity.Author;
 import com.miladsadeghi.bookhubwithgraphql.infrastracture.persistance.entity.Book;
@@ -11,10 +12,13 @@ import com.miladsadeghi.bookhubwithgraphql.infrastracture.persistance.entity.Pub
 import com.miladsadeghi.bookhubwithgraphql.infrastracture.persistance.repository.AuthorRepository;
 import com.miladsadeghi.bookhubwithgraphql.infrastracture.persistance.repository.BookRepository;
 import com.miladsadeghi.bookhubwithgraphql.infrastracture.persistance.repository.PublisherRepository;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
@@ -23,18 +27,33 @@ public class BookUseCase {
   private final BookRepository bookRepository;
   private final AuthorRepository authorRepository;
   private final PublisherRepository publisherRepository;
+  private final Validator validator;
 
   public BookUseCase(BookRepository bookRepository, AuthorRepository authorRepository,
-      PublisherRepository publisherRepository) {
+      PublisherRepository publisherRepository, Validator validator) {
     this.bookRepository = bookRepository;
     this.authorRepository = authorRepository;
     this.publisherRepository = publisherRepository;
+    this.validator = validator;
   }
 
 
 
-  public BookPayload book(String id) {
-    Optional<Book> book = bookRepository.findById(Long.parseLong(id));
+  public BookPayload book(RetrieveBookInput bookInput) {
+    Set<ConstraintViolation<RetrieveBookInput>> violations = validator.validate(bookInput);
+    List<UserError> errors = violations.stream()
+        .map(v -> new UserError(
+            v.getMessage(),
+            extractFieldName(v),
+            ErrorCode.INVALID_INPUT
+        ))
+        .collect(Collectors.toCollection(ArrayList::new));
+
+    if (!errors.isEmpty()) {
+      return new BookPayload(null, errors);
+    }
+
+    Optional<Book> book = bookRepository.findById(Long.parseLong(bookInput.id()));
     return toPayload(book);
   }
 
@@ -51,10 +70,17 @@ public class BookUseCase {
 
 
   public BookPayload createBook(CreateBookInput input) {
-    List<UserError> errors = new ArrayList<>();
+    Set<ConstraintViolation<CreateBookInput>> violations = validator.validate(input);
+    List<UserError> errors = violations.stream()
+        .map(v -> new UserError(
+            v.getMessage(),
+            extractFieldName(v),
+            ErrorCode.INVALID_INPUT
+        ))
+        .collect(Collectors.toCollection(ArrayList::new));
 
-    if (input.title() == null || input.title().isBlank()) {
-      errors.add(new UserError("Title is required", "title", ErrorCode.INVALID_INPUT));
+    if (!errors.isEmpty()) {
+      return new BookPayload(null, errors);
     }
 
     Author author = authorRepository.findById(input.authorId()).orElse(null);
@@ -134,4 +160,11 @@ public class BookUseCase {
         book.getAuthor().getId(), publisherID);
     return new BookPayload(bookDto, errors);
   }
+
+  private String extractFieldName(ConstraintViolation<?> violation) {
+    String path = violation.getPropertyPath().toString();
+    return path.substring(path.lastIndexOf('.') + 1);
+  }
 }
+
+

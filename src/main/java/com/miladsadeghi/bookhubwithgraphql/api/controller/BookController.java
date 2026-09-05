@@ -2,6 +2,7 @@ package com.miladsadeghi.bookhubwithgraphql.api.controller;
 
 import com.miladsadeghi.bookhubwithgraphql.api.dto.BookDto;
 import com.miladsadeghi.bookhubwithgraphql.api.input.CreateBookInput;
+import com.miladsadeghi.bookhubwithgraphql.api.input.RetrieveBookInput;
 import com.miladsadeghi.bookhubwithgraphql.api.payload.BookPayload;
 import com.miladsadeghi.bookhubwithgraphql.domain.model.usecase.BookUseCase;
 import com.miladsadeghi.bookhubwithgraphql.infrastracture.persistance.entity.Author;
@@ -13,7 +14,9 @@ import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
+import org.springframework.validation.annotation.Validated;
 
+@Validated
 @Controller
 public class BookController {
 
@@ -24,8 +27,8 @@ public class BookController {
   }
 
   @QueryMapping
-  public BookPayload book(@Argument(name = "id") String id) {
-    return bookUseCase.book(id);
+  public BookPayload book(@Argument() RetrieveBookInput bookInput) {
+    return bookUseCase.book(bookInput);
   }
 
   @QueryMapping
@@ -49,4 +52,7 @@ public class BookController {
   public Map<BookDto, Publisher> publisher(List<BookDto> books) {
     return bookUseCase.publisher(books);
   }
+
+
+
 }
