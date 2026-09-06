@@ -2,9 +2,50 @@ type Book {
     id: ID!
     title: String!
     publishedYear: Int
-}
+    author: Author!
+    publisher: Publisher
 
+}
+type Author {
+    id: ID!
+    name: String!
+}
+type Publisher{
+    id: ID!
+    name: String!
+}
 type Query {
-    book(id: ID!): Book
+    book(bookInput: RetrieveBookInput!): BookPayload
     books: [Book!]!
 }
+enum ErrorCode {
+    INVALID_INPUT
+    NOT_FOUND
+    DUPLICATE
+    UNAUTHORIZED
+}
+type UserError {
+    message: String!
+    field: String
+    code: ErrorCode
+}
+
+input CreateBookInput {
+    title: String!
+    authorId: ID!
+    publisherId: ID
+    publishedYear: Int
+}
+input RetrieveBookInput {
+    id: String!
+}
+
+type BookPayload {
+    book: Book
+    errors: [UserError!]!
+}
+
+type Mutation {
+    createBook(input: CreateBookInput!): BookPayload!
+}
+
