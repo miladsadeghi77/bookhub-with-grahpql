@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -36,7 +37,6 @@ public class BookUseCase {
     this.publisherRepository = publisherRepository;
     this.validator = validator;
   }
-
 
 
   public BookPayload book(RetrieveBookInput bookInput) {
@@ -87,6 +87,12 @@ public class BookUseCase {
     if (author == null) {
       errors.add(new UserError("Author not found", "authorId", ErrorCode.NOT_FOUND));
     }
+    if (input.publisherId() != null) {
+      Publisher publisher = publisherRepository.findById(input.publisherId()).orElse(null);
+      if (publisher == null) {
+        errors.add(new UserError("Publisher not found", "publisherId", ErrorCode.NOT_FOUND));
+      }
+    }
 
     if (!errors.isEmpty()) {
       return new BookPayload(null, errors);
@@ -101,10 +107,21 @@ public class BookUseCase {
       Publisher publisher = publisherRepository.findById(input.publisherId()).orElse(null);
       book.setPublisher(publisher);
     }
+    boolean exists = bookRepository.existsByTitleAndAuthorIdAndPublisherId(input.title(),
+        input.authorId(), input.publisherId());
 
-    Book saved = bookRepository.save(book);
+    if (exists) {
+      errors.add(new UserError("Book already exists", "title", ErrorCode.DUPLICATE));
+      return new BookPayload(null, errors);
+    }
+    try {
+      Book saved = bookRepository.save(book);
+      return new BookPayload(toDto(saved), List.of());
+    } catch (DataIntegrityViolationException e) {
+      errors.add(new UserError("Book already exists", "title", ErrorCode.DUPLICATE));
+      return new BookPayload(null, errors);
+    }
 
-    return new BookPayload(toDto(saved), List.of());
   }
 
 
@@ -126,7 +143,7 @@ public class BookUseCase {
 
   public Map<BookDto, Publisher> publisher(List<BookDto> books) {
     List<Long> publisherIds = books.stream()
-        .filter(book -> book.publisherId() != null)     // ← add here
+        .filter(book -> book.publisherId() != null)
         .map(BookDto::publisherId)
         .distinct()
         .toList();
@@ -135,7 +152,7 @@ public class BookUseCase {
         .collect(Collectors.toMap(Publisher::getId, a -> a));
 
     return books.stream()
-        .filter(book -> book.publisherId() != null)     // ← and here
+        .filter(book -> book.publisherId() != null)
         .collect(Collectors.toMap(
             book -> book,
             book -> publisherById.get(book.publisherId())
@@ -145,13 +162,15 @@ public class BookUseCase {
 
   private BookDto toDto(Book book) {
     Long publisherID = book.getPublisher() != null ? book.getPublisher().getId() : null;
-    return new BookDto(book.getId() , book.getTitle(),book.getPublishedYear() , book.getAuthor().getId() , publisherID);
+    return new BookDto(book.getId(), book.getTitle(), book.getPublishedYear(),
+        book.getAuthor().getId(), publisherID);
   }
-  private BookPayload  toPayload(Optional<Book> bookOptional) {
+
+  private BookPayload toPayload(Optional<Book> bookOptional) {
     List<UserError> errors = new ArrayList<>();
 
     if (bookOptional.isEmpty()) {
-      errors.add( new UserError("Book not found", "bookId", ErrorCode.NOT_FOUND));
+      errors.add(new UserError("Book not found", "bookId", ErrorCode.NOT_FOUND));
       return new BookPayload(null, errors);
     }
     Book book = bookOptional.get();
