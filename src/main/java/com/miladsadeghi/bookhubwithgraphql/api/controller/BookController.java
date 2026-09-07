@@ -9,10 +9,12 @@ import com.miladsadeghi.bookhubwithgraphql.infrastracture.persistance.entity.Aut
 import com.miladsadeghi.bookhubwithgraphql.infrastracture.persistance.entity.Publisher;
 import java.util.List;
 import java.util.Map;
+import org.springframework.data.domain.Window;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
+import org.springframework.graphql.data.query.ScrollSubrange;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
 
@@ -32,8 +34,8 @@ public class BookController {
   }
 
   @QueryMapping
-  public List<BookDto> books() {
-    return bookUseCase.books();
+  public Window<BookDto> books(ScrollSubrange subrange) {
+    return bookUseCase.books(subrange);
   }
 
   @MutationMapping

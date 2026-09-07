@@ -16,7 +16,7 @@ type Publisher{
 }
 type Query {
     book(bookInput: RetrieveBookInput!): BookPayload
-    books: [Book!]!
+    books(first: Int, after: String, last: Int, before: String): BookConnection
 }
 enum ErrorCode {
     INVALID_INPUT
@@ -49,3 +49,20 @@ type Mutation {
     createBook(input: CreateBookInput!): BookPayload!
 }
 
+
+type BookConnection {
+    edges: [BookEdge!]!
+    pageInfo: PageInfo!
+}
+
+type BookEdge {
+    cursor: String!
+    node: Book!
+}
+
+type PageInfo {
+    hasPreviousPage: Boolean!
+    hasNextPage: Boolean!
+    startCursor: String
+    endCursor: String
+}
