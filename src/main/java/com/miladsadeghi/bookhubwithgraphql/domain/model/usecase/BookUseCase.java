@@ -21,10 +21,16 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.ScrollPosition;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Window;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.graphql.data.query.ScrollSubrange;
 import org.springframework.stereotype.Service;
 
 @Service
 public class BookUseCase {
+
   private final BookRepository bookRepository;
   private final AuthorRepository authorRepository;
   private final PublisherRepository publisherRepository;
@@ -57,15 +63,17 @@ public class BookUseCase {
     return toPayload(book);
   }
 
+  public Window<BookDto> books(ScrollSubrange subrange) {
+    ScrollPosition position = subrange.position().orElse(ScrollPosition.keyset());
+    int count = subrange.count().orElse(3);
 
-  public List<BookDto> books() {
+    Specification<Book> spec = (root, query, cb) -> cb.conjunction();
 
-    return bookRepository.findAll().stream()
-        .map(book -> new BookDto(book.getId(), book.getTitle(),
-            book.getPublishedYear(),
-            book.getAuthor().getId(),
-            book.getPublisher() != null ? book.getPublisher().getId() : null))
-        .toList();
+    Window<Book> window = bookRepository.findBy(
+        spec,
+        q -> q.sortBy(Sort.by("id")).limit(count).scroll(position)
+    );
+    return window.map(this::toDto);
   }
 
 
