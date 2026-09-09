@@ -1,10 +1,13 @@
-package com.miladsadeghi.bookhubwithgraphql.domain.model.usecase;
+package com.miladsadeghi.bookhubwithgraphql.domain.usecase;
 
 import com.miladsadeghi.bookhubwithgraphql.api.dto.BookDto;
 import com.miladsadeghi.bookhubwithgraphql.api.error.ErrorCode;
 import com.miladsadeghi.bookhubwithgraphql.api.error.UserError;
+import com.miladsadeghi.bookhubwithgraphql.api.input.BookFilter;
+import com.miladsadeghi.bookhubwithgraphql.api.input.BookSortField;
 import com.miladsadeghi.bookhubwithgraphql.api.input.CreateBookInput;
 import com.miladsadeghi.bookhubwithgraphql.api.input.RetrieveBookInput;
+import com.miladsadeghi.bookhubwithgraphql.api.input.SortDirection;
 import com.miladsadeghi.bookhubwithgraphql.api.payload.BookPayload;
 import com.miladsadeghi.bookhubwithgraphql.infrastracture.persistance.entity.Author;
 import com.miladsadeghi.bookhubwithgraphql.infrastracture.persistance.entity.Book;
@@ -63,19 +66,23 @@ public class BookUseCase {
     return toPayload(book);
   }
 
-  public Window<BookDto> books(ScrollSubrange subrange) {
+  public Window<BookDto> books( BookFilter filter,
+      BookSortField sortField,
+      SortDirection sortDirection,
+      ScrollSubrange subrange) {
+
     ScrollPosition position = subrange.position().orElse(ScrollPosition.keyset());
     int count = subrange.count().orElse(3);
 
-    Specification<Book> spec = (root, query, cb) -> cb.conjunction();
+    Sort sort = getSortedBook(sortField, sortDirection);
+    Specification<Book> spec = getBookSpecification(filter);
 
     Window<Book> window = bookRepository.findBy(
         spec,
-        q -> q.sortBy(Sort.by("id")).limit(count).scroll(position)
+        q -> q.sortBy(sort).limit(count).scroll(position)
     );
     return window.map(this::toDto);
   }
-
 
   public BookPayload createBook(CreateBookInput input) {
     Set<ConstraintViolation<CreateBookInput>> violations = validator.validate(input);
@@ -192,6 +199,33 @@ public class BookUseCase {
     String path = violation.getPropertyPath().toString();
     return path.substring(path.lastIndexOf('.') + 1);
   }
+
+
+  private static Specification<Book> getBookSpecification(BookFilter filter) {
+    Specification<Book> spec = Specification.unrestricted();
+
+    if (filter != null && filter.titleContains() != null) {
+      spec = spec.and((root, query, cb) ->
+          cb.like(cb.lower(root.get("title")), "%" + filter.titleContains().toLowerCase() + "%"));
+    }
+
+    if (filter != null && filter.authorId() != null) {
+      spec = spec.and((root, query, cb) ->
+          cb.equal(root.get("author").get("id"), filter.authorId()));
+    }
+    return spec;
+  }
+
+  private static Sort getSortedBook(BookSortField sortField, SortDirection sortDirection) {
+    Sort sort = switch (sortField != null ? sortField : BookSortField.TITLE) {
+      case TITLE -> Sort.by("title");
+      case PUBLISHED_YEAR -> Sort.by("publishedYear");
+    };
+
+    sort = sortDirection == SortDirection.DESC ? sort.descending() : sort.ascending();
+    return sort.and(Sort.by("id"));
+  }
+
 }
 
 
