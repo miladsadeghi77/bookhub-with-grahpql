@@ -1,10 +1,13 @@
 package com.miladsadeghi.bookhubwithgraphql.api.controller;
 
 import com.miladsadeghi.bookhubwithgraphql.api.dto.BookDto;
+import com.miladsadeghi.bookhubwithgraphql.api.input.BookFilter;
+import com.miladsadeghi.bookhubwithgraphql.api.input.BookSortField;
 import com.miladsadeghi.bookhubwithgraphql.api.input.CreateBookInput;
 import com.miladsadeghi.bookhubwithgraphql.api.input.RetrieveBookInput;
+import com.miladsadeghi.bookhubwithgraphql.api.input.SortDirection;
 import com.miladsadeghi.bookhubwithgraphql.api.payload.BookPayload;
-import com.miladsadeghi.bookhubwithgraphql.domain.model.usecase.BookUseCase;
+import com.miladsadeghi.bookhubwithgraphql.domain.usecase.BookUseCase;
 import com.miladsadeghi.bookhubwithgraphql.infrastracture.persistance.entity.Author;
 import com.miladsadeghi.bookhubwithgraphql.infrastracture.persistance.entity.Publisher;
 import java.util.List;
@@ -34,8 +37,12 @@ public class BookController {
   }
 
   @QueryMapping
-  public Window<BookDto> books(ScrollSubrange subrange) {
-    return bookUseCase.books(subrange);
+  public Window<BookDto> books(
+      @Argument BookFilter filter,
+      @Argument BookSortField sortField,
+      @Argument SortDirection sortDirection,
+      ScrollSubrange subrange) {
+    return bookUseCase.books(filter,sortField, sortDirection, subrange);
   }
 
   @MutationMapping

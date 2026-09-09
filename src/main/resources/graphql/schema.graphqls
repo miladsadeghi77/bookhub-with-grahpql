@@ -16,7 +16,15 @@ type Publisher{
 }
 type Query {
     book(bookInput: RetrieveBookInput!): BookPayload
-    books(first: Int, after: String, last: Int, before: String): BookConnection
+    books(
+        filter: BookFilter
+        sortField: BookSortField
+        sortDirection: SortDirection
+        first: Int
+        after: String
+        last: Int
+        before: String
+    ): BookConnection
 }
 enum ErrorCode {
     INVALID_INPUT
@@ -65,4 +73,22 @@ type PageInfo {
     hasNextPage: Boolean!
     startCursor: String
     endCursor: String
+}
+
+input BookFilter {
+    titleContains: String
+    authorId: ID
+    publisherId: ID
+    minPublishedYear: Int
+    maxPublishedYear: Int
+}
+
+enum BookSortField {
+    TITLE
+    PUBLISHED_YEAR
+}
+
+enum SortDirection {
+    ASC
+    DESC
 }
